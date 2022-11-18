@@ -223,6 +223,8 @@ app.get("/user/followers/", authenticateToken, async (request, response) => {
   response.send(api5Result);
 });
 
+//API 6
+
 app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
   const { username } = request;
   const { tweetId } = request.params;
@@ -293,6 +295,8 @@ app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
   }
 });
 
+//API 7
+
 app.get(
   "/tweets/:tweetId/likes/",
   authenticateToken,
@@ -334,6 +338,51 @@ app.get(
   }
 );
 
+//API 8
+
+app.get(
+  "/tweets/:tweetId/replies/",
+  authenticateToken,
+  async (request, response) => {
+    const { username } = request;
+    const loggedInUserQuery = `
+    SELECT
+        user_id
+    FROM
+        user
+    WHERE
+        username = '${username}'`;
+    const loggedInUserObj = await db.get(loggedInUserQuery);
+    const replies_array = [];
+    const api7Query = `
+    SELECT
+        DISTINCT(user.username) 
+    FROM 
+        follower
+    INNER JOIN 
+        tweet
+    ON 
+        follower.following_user_id = tweet.user_id
+    INNER JOIN 
+        reply 
+    ON  
+        tweet.tweet_id = reply.tweet_id
+    INNER JOIN 
+        user
+    ON 
+        user.user_id = reply.user_id
+    WHERE
+        follower.follower_user_id = ${loggedInUserObj.user_id};`;
+    const api7Result = await db.all(api7Query);
+    api7Result.map((eachUsername) => {
+      replies_array.push(eachUsername.username);
+    });
+    response.send(api7Result);
+  }
+);
+
+//API 9
+
 app.get("/user/tweets/", authenticateToken, async (request, response) => {
   const api9Query = `
     SELECT
@@ -367,6 +416,20 @@ app.post("/user/tweets/", async (request, response) => {
         );`;
   await db.run(api10Query);
   response.send("Created a Tweet");
+});
+
+//API 11
+
+app.delete("/tweets/:tweetId/", async (request, response) => {
+  const { tweet } = request.body;
+  const api10Query = `
+    INSERT INTO
+        tweet(tweet)
+    VALUES(
+        '${tweet}'
+        );`;
+  await db.run(api10Query);
+  response.send("Tweet Removed");
 });
 
 module.exports = app;
